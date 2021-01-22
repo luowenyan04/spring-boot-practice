@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/products",produces = MediaType.APPLICATION_JSON_VALUE)
 public class ProductController {
 
     private final List<Product> productDB = new ArrayList<>();
@@ -28,7 +28,7 @@ public class ProductController {
         productDB.add(new Product("B0005", "Human Resource Management", 330));
     }
 
-    @GetMapping("/products/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Object> getProduct(@PathVariable("id") String id) {
         Optional<Product> productOp = productDB.stream()
                 .filter(product -> product.getId().equals(id))
@@ -43,7 +43,7 @@ public class ProductController {
         return ResponseEntity.ok().body(product);
     }
 
-    @PostMapping("/products")
+    @PostMapping
     public ResponseEntity<Product> createProduct(@RequestBody Product request) {
         boolean isIdDuplicated = productDB.stream().anyMatch(product -> product.getId().equals(request.getId()));
         if (isIdDuplicated) {
@@ -65,7 +65,7 @@ public class ProductController {
         return ResponseEntity.created(location).body(product);
     }
 
-    @PutMapping("/products/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Product> replaceProduct(@PathVariable("id") String id, @RequestBody Product request) {
         Optional<Product> productOp = productDB.stream()
                 .filter(product -> product.getId().equals(id))
@@ -82,7 +82,7 @@ public class ProductController {
         return ResponseEntity.ok().body(product);
     }
 
-    @DeleteMapping("/product/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable("id") int id) {
         boolean isRemoved = productDB.removeIf(product -> product.getId().equals(id));
 
@@ -93,7 +93,7 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/products")
+    @GetMapping
     public ResponseEntity<List<Product>> getProducts(@ModelAttribute ProductQueryParameter param) {
         String nameKeyword = param.getKeyword();
         String orderBy = param.getOrderBy();
