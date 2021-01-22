@@ -1,6 +1,7 @@
 package com.wenyan.springbootpractice.controller;
 
 import com.wenyan.springbootpractice.entity.product.Product;
+import com.wenyan.springbootpractice.parameter.ProductQueryParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -9,9 +10,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -63,5 +63,67 @@ public class ProductController {
                 .toUri();
 
         return ResponseEntity.created(location).body(product);
+    }
+
+    @PutMapping("/products/{id}")
+    public ResponseEntity<Product> replaceProduct(@PathVariable("id") String id, @RequestBody Product request) {
+        Optional<Product> productOp = productDB.stream()
+                .filter(product -> product.getId().equals(id))
+                .findFirst();
+
+        if (!productOp.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Product product = productOp.get();
+        product.setName(request.getName());
+        product.setPrice(request.getPrice());
+
+        return ResponseEntity.ok().body(product);
+    }
+
+    @DeleteMapping("/product/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable("id") int id) {
+        boolean isRemoved = productDB.removeIf(product -> product.getId().equals(id));
+
+        if (isRemoved) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/products")
+    public ResponseEntity<List<Product>> getProducts(@ModelAttribute ProductQueryParameter param) {
+        String nameKeyword = param.getKeyword();
+        String orderBy = param.getOrderBy();
+        String sortRule = param.getSortRule();
+
+        Comparator<Product> comparator = Objects.nonNull(orderBy) && Objects.nonNull(sortRule)
+                ? configureSortComparator(orderBy, sortRule)
+                : (p1, p2) -> 0;
+
+        List<Product> products = productDB.stream()
+                .filter(p -> p.getName().toUpperCase().contains(nameKeyword.toUpperCase()))
+                .sorted(comparator)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok().body(products);
+    }
+
+    private Comparator<Product> configureSortComparator(String orderBy, String sortRule) {
+        Comparator<Product> comparator = (p1, p2) -> 0;
+
+        if (orderBy.equalsIgnoreCase("price")) {
+            comparator = Comparator.comparing(Product::getPrice);
+        } else if (orderBy.equalsIgnoreCase("name")) {
+            comparator = Comparator.comparing(Product::getName);
+        }
+
+        if (sortRule.equalsIgnoreCase("desc")) {
+            comparator = comparator.reversed();
+        }
+
+        return comparator;
     }
 }
